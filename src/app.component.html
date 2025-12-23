@@ -188,14 +188,14 @@
             </div>
           </div>
 
-          <!-- AI CAPTION -->
+          <!-- MOCK AI CAPTION -->
           @if (aiCaption() || isGeneratingCaption()) {
             <div class="bg-white/90 backdrop-blur px-6 py-4 rounded-2xl border border-pink-200 shadow-sm max-w-xl w-full text-center -mt-4 z-10">
               @if (isGeneratingCaption()) {
-                <p class="text-pink-400 animate-pulse italic">✨ Đang triệu hồi caption cute...</p>
+                <p class="text-pink-400 animate-pulse italic">✨ Đang chọn caption cute...</p>
               } @else {
                 <p class="text-gray-700 font-medium italic text-lg">"{{ aiCaption() }}"</p>
-                <div class="text-[10px] text-pink-400 font-bold uppercase mt-1 tracking-widest">AI Caption</div>
+                <div class="text-[10px] text-pink-400 font-bold uppercase mt-1 tracking-widest">Caption Cute</div>
               }
             </div>
           }
