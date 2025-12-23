@@ -1,0 +1,7 @@
+{
+  "name": "Tiệm Chụp Ảnh Cute",
+  "description": "Một photobooth siêu dễ thương với các bộ lọc màu xinh xắn và tính năng tạo caption bằng AI.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

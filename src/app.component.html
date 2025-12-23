@@ -1,0 +1,231 @@
+
+<div class="min-h-screen p-4 md:p-6 max-w-5xl mx-auto flex flex-col font-sans">
+
+  <!-- HEADER -->
+  <header class="text-center mb-6">
+    <h1 class="font-hand text-4xl md:text-5xl text-pink-500 font-bold drop-shadow-sm cursor-pointer" (click)="reset()">
+      Tiệm Chụp Ảnh Cute 📸
+    </h1>
+  </header>
+
+  <!-- ERROR ALERT -->
+  @if (error()) {
+    <div class="bg-red-100 text-red-600 p-4 rounded-xl text-center mb-6 border border-red-200">
+      {{ error() }}
+    </div>
+  }
+
+  <!-- WIZARD CONTENT -->
+  <main class="flex-1 flex flex-col items-center justify-center w-full">
+
+    @switch (mode()) {
+      
+      <!-- STEP 1: SETUP -->
+      @case ('setup') {
+        <div class="w-full max-w-3xl bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-sm border border-pink-100 space-y-8 animate-[fadeIn_0.5s]">
+          
+          <!-- Frame Selection -->
+          <section>
+            <h3 class="text-pink-600 font-bold mb-4 flex items-center gap-2 text-lg">
+              <span class="bg-pink-100 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+              Chọn kiểu khung
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              @for (frame of frames; track frame.id) {
+                <button 
+                  (click)="selectedFrame.set(frame)"
+                  class="relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 hover:bg-pink-50"
+                  [class]="selectedFrame().id === frame.id ? 'border-pink-500 bg-pink-50' : 'border-gray-200'"
+                >
+                  <!-- Frame Preview Container -->
+                  <div class="h-32 w-full flex items-center justify-center p-2 bg-gray-50 rounded-lg">
+                    <div 
+                      class="grid gap-[2px] shadow-sm border border-gray-300 p-1 box-border transition-all"
+                      [style.background-color]="frame.bgColor"
+                      [style.grid-template-columns]="'repeat(' + frame.cols + ', 1fr)'"
+                      [style.aspect-ratio]="(frame.cols * frame.aspectRatio) + '/' + frame.rows"
+                      [style.height.%]="60"
+                    >
+                      @for (i of [].constructor(frame.rows * frame.cols); track i) {
+                        <div class="bg-gray-200 w-full h-full rounded-[1px] border border-black/5"></div>
+                      }
+                    </div>
+                  </div>
+                  <span class="font-bold text-gray-700">{{ frame.name }}</span>
+                </button>
+              }
+            </div>
+          </section>
+
+          <!-- Timer Selection -->
+          <section>
+            <h3 class="text-pink-600 font-bold mb-4 flex items-center gap-2 text-lg">
+              <span class="bg-pink-100 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+              Chọn thời gian đếm ngược
+            </h3>
+            <div class="flex gap-4">
+              @for (t of [3, 5, 10]; track t) {
+                <button 
+                  (click)="timerDuration.set(t)"
+                  class="flex-1 py-3 rounded-xl border-2 font-bold transition-all"
+                  [class]="timerDuration() === t ? 'border-pink-500 bg-pink-500 text-white shadow-lg transform scale-105' : 'border-pink-200 text-pink-400 hover:bg-pink-50'"
+                >
+                  {{ t }} giây
+                </button>
+              }
+            </div>
+          </section>
+
+          <!-- Filter Selection -->
+          <section>
+            <h3 class="text-pink-600 font-bold mb-4 flex items-center gap-2 text-lg">
+              <span class="bg-pink-100 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
+              Chọn bộ lọc
+            </h3>
+            <div class="flex flex-wrap gap-3">
+              @for (filter of filters; track filter.id) {
+                <button 
+                  (click)="selectedFilter.set(filter)"
+                  class="px-4 py-2 rounded-full border text-sm font-medium transition-colors"
+                  [class]="selectedFilter().id === filter.id ? 'bg-pink-500 text-white border-pink-500' : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300'"
+                >
+                  {{ filter.name }}
+                </button>
+              }
+            </div>
+          </section>
+
+          <div class="pt-4 flex justify-center">
+            <button 
+              (click)="startSession()"
+              class="bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xl font-bold py-4 px-12 rounded-full shadow-xl hover:scale-105 transition-transform active:scale-95"
+            >
+              Bắt đầu chụp nào! ✨
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- STEP 2: CAPTURING -->
+      @case ('capturing') {
+        <div class="relative w-full max-w-4xl flex flex-col items-center animate-[fadeIn_0.5s]">
+          <!-- Progress -->
+          <div class="mb-4 bg-white/80 px-6 py-2 rounded-full shadow-sm text-pink-600 font-bold font-hand text-xl">
+            Ảnh {{ shots().length + 1 }} / {{ selectedFrame().rows * selectedFrame().cols }}
+          </div>
+
+          <div class="relative rounded-[2rem] overflow-hidden shadow-2xl border-8 border-white ring-4 ring-pink-200 aspect-video w-full bg-black">
+            <video 
+              #videoElement 
+              autoplay 
+              playsinline 
+              class="w-full h-full object-cover transform scale-x-[-1]"
+              [style.filter]="selectedFilter().ctxFilter"
+            ></video>
+
+            <!-- Flash -->
+            <div class="absolute inset-0 bg-white pointer-events-none transition-opacity duration-150 z-20"
+                 [class.opacity-0]="!flashActive()" [class.opacity-100]="flashActive()"></div>
+
+            <!-- Countdown -->
+            @if (countdown() !== null) {
+              <div class="absolute inset-0 flex items-center justify-center z-10 bg-black/20 backdrop-blur-[2px]">
+                <span class="font-hand text-[12rem] text-white font-bold animate-[ping_1s_ease-in-out_infinite] drop-shadow-lg">
+                  {{ countdown() }}
+                </span>
+              </div>
+            }
+          </div>
+
+          <div class="mt-8">
+            <button 
+              (click)="triggerTimer()"
+              [disabled]="isProcessing() || countdown() !== null"
+              class="w-24 h-24 bg-white rounded-full border-[6px] border-pink-100 flex items-center justify-center shadow-lg hover:border-pink-300 transition-all active:scale-95 group"
+            >
+              <div class="w-16 h-16 bg-pink-500 rounded-full group-hover:scale-90 transition-transform"></div>
+            </button>
+          </div>
+          
+          <canvas #canvasElement class="hidden"></canvas>
+        </div>
+      }
+
+      <!-- STEP 3: REVIEW MINI -->
+      @case ('review') {
+        <div class="w-full max-w-lg bg-white p-6 rounded-3xl shadow-xl border-4 border-pink-100 text-center space-y-6 animate-[fadeIn_0.3s]">
+          <h3 class="text-2xl font-hand font-bold text-gray-700">Ảnh này ổn không? 🤔</h3>
+          
+          <div class="rounded-xl overflow-hidden shadow-md mx-auto aspect-video bg-gray-100">
+            <img [src]="tempShot()" class="w-full h-full object-contain bg-black">
+          </div>
+
+          <div class="flex justify-center gap-4">
+            <button 
+              (click)="retakeShot()"
+              class="px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <span class="text-xl">↺</span> Chụp lại
+            </button>
+            <button 
+              (click)="confirmShot()"
+              class="px-8 py-3 rounded-xl bg-pink-500 text-white font-bold shadow-lg hover:bg-pink-600 transition-colors flex items-center gap-2"
+            >
+              Lấy tấm này <span class="text-xl">➜</span>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- STEP 4: DECORATE & RESULT (New Layout) -->
+      @case ('decorate') {
+        <div class="w-full flex flex-col items-center gap-8 animate-[fadeIn_0.5s] pb-10">
+          
+          <!-- IMAGE DISPLAY -->
+          <div class="relative bg-white p-3 rounded-2xl shadow-2xl border border-gray-100 max-w-3xl w-full">
+            <div class="rounded-lg overflow-hidden bg-gray-50 flex justify-center">
+              <canvas #finalCanvas class="block w-full h-auto max-h-[70vh] object-contain"></canvas>
+            </div>
+          </div>
+
+          <!-- AI CAPTION -->
+          @if (aiCaption() || isGeneratingCaption()) {
+            <div class="bg-white/90 backdrop-blur px-6 py-4 rounded-2xl border border-pink-200 shadow-sm max-w-xl w-full text-center -mt-4 z-10">
+              @if (isGeneratingCaption()) {
+                <p class="text-pink-400 animate-pulse italic">✨ Đang triệu hồi caption cute...</p>
+              } @else {
+                <p class="text-gray-700 font-medium italic text-lg">"{{ aiCaption() }}"</p>
+                <div class="text-[10px] text-pink-400 font-bold uppercase mt-1 tracking-widest">AI Caption</div>
+              }
+            </div>
+          }
+
+          <!-- ACTIONS -->
+          <div class="flex flex-col sm:flex-row gap-4 w-full max-w-xl justify-center mt-2">
+            <button 
+              (click)="saveAndDownload()"
+              class="flex-1 py-4 px-8 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-bold shadow-xl text-lg flex items-center justify-center gap-3 hover:scale-105 transition-transform active:scale-95"
+            >
+              <span class="text-2xl">💾</span> Lưu ảnh về máy
+            </button>
+            
+            <button 
+              (click)="reset()"
+              class="flex-1 py-4 px-8 bg-white text-gray-600 rounded-2xl font-bold border-2 border-gray-200 shadow-sm text-lg flex items-center justify-center gap-3 hover:bg-gray-50 transition-colors active:scale-95"
+            >
+              <span class="text-2xl">📸</span> Chụp bộ mới
+            </button>
+          </div>
+
+        </div>
+      }
+    }
+  </main>
+</div>
+
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
